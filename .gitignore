@@ -1,0 +1,10 @@
+*.log
+*.iml
+.idea/
+target/
+bin/
+project/boot/
+project/plugins/project/
+project/*-shim.sbt
+project/project/
+project/target/
