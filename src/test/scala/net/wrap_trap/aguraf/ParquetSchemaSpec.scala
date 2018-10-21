@@ -1,7 +1,6 @@
 package net.wrap_trap.aguraf
 
-import java.nio.file.{Paths, Path}
-import java.security.CodeSource
+import java.nio.file.Paths
 
 import org.scalatest.FunSpec
 import org.scalatest.Matchers._
