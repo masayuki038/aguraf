@@ -16,7 +16,7 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName._
 class ParquetTranslatableTableSpec extends FunSpec {
 
   describe("ParquetTranslatableTable") {
-    it("should get columns in parquet files") {
+    it("should read column descriptors from parquet files in SAMPLES") {
       val dirPath = Paths.get("src/test/resources/samples").toAbsolutePath()
       val columns = ParquetTranslatableTable("SAMPLES", dirPath).columns
       val paths = columns.map(_.getPath).flatten
@@ -27,6 +27,17 @@ class ParquetTranslatableTableSpec extends FunSpec {
       }
       columns.filter(c => c.getPath().contains("simpleCol")).foreach {
         _.getPrimitiveType.getPrimitiveTypeName should be(DOUBLE)
+      }
+    }
+
+    it("should read column descriptors from parquet files in USERDATA") {
+      val dirPath = Paths.get("src/test/resources/userdata").toAbsolutePath()
+      val columns = ParquetTranslatableTable("USERDATA", dirPath).columns
+      val paths = columns.map(_.getPath).flatten
+      paths should contain("registration_dttm")
+
+      columns.filter(c => c.getPath().contains("registration_dttm")).foreach {
+        _.getPrimitiveType.getPrimitiveTypeName should be(INT96)
       }
     }
 
