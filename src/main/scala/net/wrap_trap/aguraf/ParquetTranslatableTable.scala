@@ -5,9 +5,8 @@ import java.nio.file.{Files, Path}
 
 import org.apache.calcite.rel.`type`.RelDataTypeFactory.FieldInfoBuilder
 import org.apache.calcite.sql.`type`.SqlTypeName
-import org.apache.parquet.column.ColumnDescriptor
-import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
+import org.apache.parquet.format.{ConvertedType, SchemaElement, Type => SchemaElementType}
+import org.apache.parquet.hadoop.{ParquetFileWriter, ParquetFileReader}
 
 import collection.JavaConverters._
 
@@ -27,7 +26,7 @@ import org.apache.parquet.format.converter.ParquetMetadataConverter
 
 object ParquetTranslatableTable extends LazyLogging {
 
-  def apply(tableName: String, columns: Seq[ColumnDescriptor]): ParquetTranslatableTable = {
+  def apply(tableName: String, columns: Seq[SchemaElement]): ParquetTranslatableTable = {
     new ParquetTranslatableTable(tableName, columns)
   }
 
@@ -35,32 +34,37 @@ object ParquetTranslatableTable extends LazyLogging {
     new ParquetTranslatableTable(tableName, getColumns(dirPath))
   }
 
-  private def getColumns(dirPath: Path): Seq[ColumnDescriptor] = {
+  private def getColumns(dirPath: Path): Seq[SchemaElement] = {
     val parquetFiles = Files.newDirectoryStream(dirPath, "*.parquet").asScala.toSeq
     val hdfsPath = new HDFSPath(parquetFiles(0).toAbsolutePath().toString())
     val config = new Configuration()
     logger.debug(s"Reading Parquet schema from $dirPath")
-    val metadata = ParquetFileReader.readFooter(config, hdfsPath, ParquetMetadataConverter.NO_FILTER)
-    val messageType = metadata.getFileMetaData.getSchema()
-    messageType.getColumns.asScala
+    val parquetMetadata = ParquetFileReader.readFooter(config, hdfsPath, ParquetMetadataConverter.NO_FILTER)
+    val fileMetaData = new ParquetMetadataConverter().toParquetMetadata(ParquetFileWriter.CURRENT_VERSION, parquetMetadata);
+    val messageType = parquetMetadata.getFileMetaData.getSchema()
+    fileMetaData.getSchema.asScala
     // TODO Check all parquet files have same column descriptors
   }
 }
 
-class ParquetTranslatableTable(val tableName: String, val columns: Seq[ColumnDescriptor])
+class ParquetTranslatableTable(val tableName: String, val schemaElements: Seq[SchemaElement])
   extends AbstractTable with QueryableTable with TranslatableTable with LazyLogging {
 
   override def getRowType(typeFactory: RelDataTypeFactory): RelDataType = {
     val fieldBuilder = new FieldInfoBuilder(typeFactory)
-    columns.foreach { descriptor =>
-      assert(descriptor.getPath.size == 1)
-      val name = descriptor.getPath.apply(0).toUpperCase
-      val columnType = descriptor.getType match {
-        case PrimitiveTypeName.FLOAT => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.FLOAT), true)
-        case PrimitiveTypeName.BINARY => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.VARCHAR), true)
-        case PrimitiveTypeName.INT32 => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.INTEGER), true)
-        case PrimitiveTypeName.INT64 => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), true)
-        case PrimitiveTypeName.DOUBLE => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DOUBLE), true)
+    schemaElements.foreach { schemaElement =>
+      val name = schemaElement.getName.toUpperCase
+      val columnType = (schemaElement.getType, schemaElement.getConverted_type) match {
+        case (SchemaElementType.FLOAT, _) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.FLOAT, schemaElement.getPrecision), true)
+        case (SchemaElementType.DOUBLE, _) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DOUBLE, schemaElement.getPrecision), true)
+        case (SchemaElementType.BYTE_ARRAY, _) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.VARCHAR, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT32, ConvertedType.DATE) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DATE, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT32, ConvertedType.TIME_MILLIS) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.TIME, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT32, _) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.INTEGER, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT64, ConvertedType.TIME_MICROS) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.TIME, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT64, ConvertedType.TIMESTAMP_MILLIS) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.TIMESTAMP, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT64, ConvertedType.TIMESTAMP_MICROS) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.TIMESTAMP, schemaElement.getPrecision), true)
+        case (SchemaElementType.INT64, _) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), true)
       }
       fieldBuilder.add(name, columnType)
     }
