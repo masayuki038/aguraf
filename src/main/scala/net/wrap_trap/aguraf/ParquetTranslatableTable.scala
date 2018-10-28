@@ -65,6 +65,7 @@ class ParquetTranslatableTable(val tableName: String, val schemaElements: Seq[Sc
         case (SchemaElementType.INT64, ConvertedType.TIMESTAMP_MILLIS) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.TIMESTAMP, schemaElement.getPrecision), true)
         case (SchemaElementType.INT64, ConvertedType.TIMESTAMP_MICROS) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.TIMESTAMP, schemaElement.getPrecision), true)
         case (SchemaElementType.INT64, _) => typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), true)
+        case _ => throw new IllegalArgumentException("Unexpected type: (%s, %s)".format(schemaElement.getType.toString, schemaElement.getConverted_type.toString))
       }
       fieldBuilder.add(name, columnType)
     }

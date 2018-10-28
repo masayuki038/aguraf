@@ -3,11 +3,12 @@ package net.wrap_trap.aguraf
 import org.apache.calcite.plan.{RelOptTable, Convention}
 import org.apache.calcite.rel.RelNode
 
-trait ParquetRel extends RelNode {
+object ParquetRel {
   val CONVENTION = new Convention.Impl("PARQUET", classOf[ParquetRel])
+}
 
+abstract class ParquetRel extends RelNode {
   def implement(parquetContext: ParquetContext): Unit = ???
-
 }
 
 class ParquetContext(val table: RelOptTable, val parquetTable: ParquetTranslatableTable, val limit: Int) {
