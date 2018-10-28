@@ -18,7 +18,7 @@ import org.apache.calcite.plan.RelOptTable.ToRelContext
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.`type`.{RelDataType, RelDataTypeFactory}
 import org.apache.calcite.schema.impl.AbstractTable
-import org.apache.calcite.schema.{SchemaPlus, TranslatableTable, QueryableTable}
+import org.apache.calcite.schema.{Schemas, SchemaPlus, TranslatableTable, QueryableTable}
 import org.apache.hadoop.conf.Configuration
 
 import org.apache.hadoop.fs.{Path => HDFSPath}
@@ -71,9 +71,13 @@ class ParquetTranslatableTable(val tableName: String, val schemaElements: Seq[Sc
     fieldBuilder.build()
   }
 
-  override def getExpression(schema: SchemaPlus, tableName: String, clazz: Class[_]): Expression = ???
+  override def getExpression(schema: SchemaPlus, tableName: String, clazz: Class[_]): Expression = {
+    Schemas.tableExpression(schema, getElementType(), tableName, clazz)
+  }
 
-  override def getElementType: Type = ???
+  override def getElementType: Type = {
+    classOf[Array[Object]]
+  }
 
   override def asQueryable[T](queryProvider: QueryProvider, schema: SchemaPlus, tableName: String): Queryable[T] = ???
 
