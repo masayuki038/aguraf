@@ -26,12 +26,12 @@ import org.apache.parquet.format.converter.ParquetMetadataConverter
 
 object ParquetTranslatableTable extends LazyLogging {
 
-  def apply(tableName: String, columns: Seq[SchemaElement]): ParquetTranslatableTable = {
-    new ParquetTranslatableTable(tableName, columns)
+  def apply(tableName: String, columns: Seq[SchemaElement], dirPath: Path): ParquetTranslatableTable = {
+    new ParquetTranslatableTable(tableName, columns, dirPath)
   }
 
   def apply(tableName: String, dirPath: Path): ParquetTranslatableTable = {
-    new ParquetTranslatableTable(tableName, getColumns(dirPath))
+    new ParquetTranslatableTable(tableName, getColumns(dirPath), dirPath)
   }
 
   private def getColumns(dirPath: Path): Seq[SchemaElement] = {
@@ -42,12 +42,12 @@ object ParquetTranslatableTable extends LazyLogging {
     val parquetMetadata = ParquetFileReader.readFooter(config, hdfsPath, ParquetMetadataConverter.NO_FILTER)
     val fileMetaData = new ParquetMetadataConverter().toParquetMetadata(ParquetFileWriter.CURRENT_VERSION, parquetMetadata);
     val messageType = parquetMetadata.getFileMetaData.getSchema()
-    fileMetaData.getSchema.asScala
+    fileMetaData.getSchema.asScala.filter(s => s.getType != null)
     // TODO Check all parquet files have same column descriptors
   }
 }
 
-class ParquetTranslatableTable(val tableName: String, val schemaElements: Seq[SchemaElement])
+class ParquetTranslatableTable(val tableName: String, val schemaElements: Seq[SchemaElement], val dirPath: Path)
   extends AbstractTable with QueryableTable with TranslatableTable with LazyLogging {
 
   override def getRowType(typeFactory: RelDataTypeFactory): RelDataType = {
@@ -82,5 +82,7 @@ class ParquetTranslatableTable(val tableName: String, val schemaElements: Seq[Sc
 
   override def asQueryable[T](queryProvider: QueryProvider, schema: SchemaPlus, tableName: String): Queryable[T] = ???
 
-  override def toRel(context: ToRelContext, relOptTable: RelOptTable): RelNode = ???
+  override def toRel(context: ToRelContext, relOptTable: RelOptTable): RelNode = {
+    new ParquetTableScan(context.getCluster, relOptTable, None, dirPath)
+  }
 }

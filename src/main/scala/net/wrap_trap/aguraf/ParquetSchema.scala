@@ -16,13 +16,9 @@ class ParquetSchema(val path: Path) extends AbstractSchema {
     Files.walk(this.path).filter(matcher.matches(_)).forEach(p => tableNames += getTablePath(p))
 
     tableNames.foldLeft(new java.util.HashMap[String, Table]()) { case (acc, (name, dirPath)) =>
-      acc.put(name, createTranslatableTable(name, dirPath))
+      acc.put(name, ParquetTranslatableTable(name, dirPath))
       acc
     }
-  }
-
-  protected def createTranslatableTable(tableName: String, dirPath: Path): TranslatableTable = {
-    return null
   }
 
   protected def getTablePath(p: Path): (String, Path) = {

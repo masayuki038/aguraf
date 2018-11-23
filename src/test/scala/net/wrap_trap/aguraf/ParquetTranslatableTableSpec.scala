@@ -39,19 +39,20 @@ class ParquetTranslatableTableSpec extends FunSpec {
     }
 
     it("should get correct RelDataType") {
+      val dummy = Paths.get("src/test/resources/samples").toAbsolutePath()
       val schemaElements = Seq(
-        createSchema("column_int", SchemaElementType.INT32, null, 0),
-        createSchema("column_bigint", SchemaElementType.INT64, null, 0),
-        createSchema("column_varchar", SchemaElementType.BYTE_ARRAY, null, 0),
-        createSchema("column_float", SchemaElementType.FLOAT, null, 0),
-        createSchema("column_double", SchemaElementType.DOUBLE, null, 0),
-        createSchema("column_date", SchemaElementType.INT32, ConvertedType.DATE, 0),
-        createSchema("column_time_millis", SchemaElementType.INT32, ConvertedType.TIME_MILLIS, 3),
-        createSchema("column_time_micros", SchemaElementType.INT64, ConvertedType.TIME_MICROS, 6),
-        createSchema("column_timestamp_millis", SchemaElementType.INT64, ConvertedType.TIMESTAMP_MILLIS, 3),
-        createSchema("column_timestamp_micros", SchemaElementType.INT64, ConvertedType.TIMESTAMP_MICROS, 6)
+        createSchemaElement("column_int", SchemaElementType.INT32, null, 0),
+        createSchemaElement("column_bigint", SchemaElementType.INT64, null, 0),
+        createSchemaElement("column_varchar", SchemaElementType.BYTE_ARRAY, null, 0),
+        createSchemaElement("column_float", SchemaElementType.FLOAT, null, 0),
+        createSchemaElement("column_double", SchemaElementType.DOUBLE, null, 0),
+        createSchemaElement("column_date", SchemaElementType.INT32, ConvertedType.DATE, 0),
+        createSchemaElement("column_time_millis", SchemaElementType.INT32, ConvertedType.TIME_MILLIS, 3),
+        createSchemaElement("column_time_micros", SchemaElementType.INT64, ConvertedType.TIME_MICROS, 6),
+        createSchemaElement("column_timestamp_millis", SchemaElementType.INT64, ConvertedType.TIMESTAMP_MILLIS, 3),
+        createSchemaElement("column_timestamp_micros", SchemaElementType.INT64, ConvertedType.TIMESTAMP_MICROS, 6)
       )
-      val table = ParquetTranslatableTable("SAMPLES", schemaElements)
+      val table = ParquetTranslatableTable("SAMPLES", schemaElements, dummy)
       val relDataType = table.getRowType(new JavaTypeFactoryImpl())
       val intField = relDataType.getField("COLUMN_INT", false, false)
       intField.getName should be ("COLUMN_INT")
@@ -90,7 +91,7 @@ class ParquetTranslatableTableSpec extends FunSpec {
     }
   }
 
-  private def createSchema(name: String, elementType: SchemaElementType, convertedType: ConvertedType, precision: Int): SchemaElement = {
+  private def createSchemaElement(name: String, elementType: SchemaElementType, convertedType: ConvertedType, precision: Int): SchemaElement = {
     val schemaElement = new SchemaElement(name)
     schemaElement.setType(elementType)
     schemaElement.setConverted_type(convertedType)

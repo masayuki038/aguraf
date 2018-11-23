@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SAMPLES",
+  "schemas": [
+    {
+      "name": "SAMPLES",
+      "type": "custom",
+      "factory": "net.wrap_trap.aguraf.ParquetSchemaFactory",
+      "operand": {
+        "directory": "src/test/resources/samples"
+      }
+    }
+  ]
+}
